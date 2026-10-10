@@ -1,0 +1,183 @@
+{
+  "projectName": "Maya's Site",
+  "collections": [
+    {
+      "id": "pricingC",
+      "name": "Pricing",
+      "ownership": "user",
+      "fields": [
+        {
+          "id": "nm",
+          "name": "Plan Name",
+          "type": "string"
+        },
+        {
+          "id": "pr",
+          "name": "Monthly Price",
+          "type": "number"
+        },
+        {
+          "id": "tr",
+          "name": "Tier",
+          "type": "enum",
+          "cases": [
+            {
+              "id": "t1",
+              "name": "Free"
+            },
+            {
+              "id": "t2",
+              "name": "Pro"
+            }
+          ]
+        },
+        {
+          "id": "sp",
+          "name": "Includes support",
+          "type": "boolean"
+        }
+      ],
+      "items": [
+        {
+          "id": "n1",
+          "nodeId": "n1",
+          "slug": "starter",
+          "draft": false,
+          "fieldData": {
+            "nm": {
+              "type": "string",
+              "value": "Starter"
+            },
+            "pr": {
+              "type": "number",
+              "value": 0
+            },
+            "tr": {
+              "type": "enum",
+              "value": "t1"
+            },
+            "sp": {
+              "type": "boolean",
+              "value": false
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "nodeId": "n2",
+          "slug": "pro-monthly",
+          "draft": false,
+          "fieldData": {
+            "nm": {
+              "type": "string",
+              "value": "Pro Monthly"
+            },
+            "pr": {
+              "type": "number",
+              "value": 19
+            },
+            "tr": {
+              "type": "enum",
+              "value": "t2"
+            },
+            "sp": {
+              "type": "boolean",
+              "value": true
+            }
+          }
+        },
+        {
+          "id": "n3",
+          "nodeId": "n3",
+          "slug": "enterprise",
+          "draft": false,
+          "fieldData": {
+            "nm": {
+              "type": "string",
+              "value": "Enterprise"
+            },
+            "pr": {
+              "type": "number",
+              "value": 199
+            },
+            "tr": {
+              "type": "enum",
+              "value": "t2"
+            },
+            "sp": {
+              "type": "boolean",
+              "value": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "blogC",
+      "name": "Blog",
+      "ownership": "other",
+      "fields": [
+        {
+          "id": "title",
+          "name": "Title",
+          "type": "string"
+        },
+        {
+          "id": "publish-date",
+          "name": "Publish Date",
+          "type": "date"
+        },
+        {
+          "id": "author",
+          "name": "Author",
+          "type": "string"
+        },
+        {
+          "id": "content_html",
+          "name": "Content",
+          "type": "formattedText"
+        },
+        {
+          "id": "meta",
+          "name": "Meta Description",
+          "type": "string"
+        },
+        {
+          "id": "thumbnail",
+          "name": "Thumbnail",
+          "type": "image"
+        }
+      ],
+      "items": [
+        {
+          "id": "b1",
+          "nodeId": "b1",
+          "slug": "hello-world",
+          "draft": false,
+          "fieldData": {}
+        },
+        {
+          "id": "b2",
+          "nodeId": "b2",
+          "slug": "packing-for-japan",
+          "draft": false,
+          "fieldData": {}
+        }
+      ]
+    },
+    {
+      "id": "teamC",
+      "name": "Team",
+      "ownership": "user",
+      "fields": [
+        {
+          "id": "n",
+          "name": "Name",
+          "type": "string"
+        }
+      ],
+      "items": []
+    }
+  ],
+  "redirects": []
+}

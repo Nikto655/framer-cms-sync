@@ -1,0 +1,90 @@
+{
+  "name": "framer-cms-sync",
+  "version": "0.1.0",
+  "description": "Sync CSV, JSON, Markdown and databases to Framer CMS. Preview changes, manage collections, bulk redirects and multiple sites from a terminal app, CLI, HTTP API, Docker or MCP server for AI agents. Built on the Framer Server API.",
+  "keywords": [
+    "framer",
+    "framer-cms",
+    "framer-api",
+    "framer-server-api",
+    "cms",
+    "cms-sync",
+    "csv-import",
+    "markdown",
+    "markdown-to-cms",
+    "blog",
+    "headless-cms",
+    "sync",
+    "automation",
+    "n8n",
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "ai-agents",
+    "cli",
+    "tui",
+    "docker",
+    "redirects"
+  ],
+  "type": "module",
+  "license": "MIT",
+  "author": "Nikto655",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nikto655/framer-cms-sync.git"
+  },
+  "homepage": "https://github.com/Nikto655/framer-cms-sync#readme",
+  "bugs": {
+    "url": "https://github.com/Nikto655/framer-cms-sync/issues"
+  },
+  "bin": {
+    "framer-cms-sync": "dist/cli/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "agents",
+    "skills",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build && npm test",
+    "demo": "rm -rf .demo && cp -R examples/demo .demo && cd .demo && FRAMER_CMS_SYNC_DEMO=./demo-framer.json node ../dist/cli/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "csv-parse": "7.0.3",
+    "exceljs": "4.4.0",
+    "framer-api": "5.1.0",
+    "gray-matter": "4.0.3",
+    "ink": "8.0.0",
+    "ink-text-input": "6.0.0",
+    "markdown-it": "14.1.0",
+    "react": "19.3.0",
+    "turndown": "7.2.4",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "14.2.0",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/turndown": "5.0.6",
+    "typescript": "7.0.2"
+  }
+}

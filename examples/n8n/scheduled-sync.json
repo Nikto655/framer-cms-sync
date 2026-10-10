@@ -1,0 +1,237 @@
+{
+  "name": "framer-cms-sync: scheduled sync",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 900,
+        "height": 200,
+        "content": "## Data \u2192 framer-cms-sync \u2192 Framer CMS\n1. Replace **Get rows** with your source (Postgres, Airtable, Google Sheets, HTTP\u2026). Each item = one record; column names = Framer field names.\n2. Create a **Header Auth** credential named `framer-cms-sync token`: header `x-sync-token`, value = a token from the config.\n3. Change `pricing` in the URLs to your sync's name. **Preview (safe)** writes nothing. The schedule applies and publishes only if something changed.\n4. The query returns the whole table, so the requests say `complete=true` (data sent to framer-cms-sync is otherwise treated as partial: it adds and updates but never removes)."
+      },
+      "id": "e6ec3a5c-8c92-49f6-b921-d726dc0c22b4",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -260
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e58ebedb-ed3c-47da-bf2d-5e87ec86d7ed",
+      "name": "Preview (safe)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM plans;",
+        "options": {}
+      },
+      "id": "7d8fa9b4-9507-483d-ab98-1b3058890852",
+      "name": "Get rows (preview)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// framer-cms-sync wants one request with every row.\nreturn [{ json: { rows: $input.all().map((i) => i.json) } }];"
+      },
+      "id": "52f9f71e-162d-463a-b003-93c7f2b4c245",
+      "name": "Bundle (preview)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://framer-cms-sync:8080/syncs/pricing/plan?complete=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "561dacc9-5d96-4259-8f1d-2e632236afd6",
+      "name": "Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "framer-cms-sync token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "6d3cf80e-7d7b-4109-b0ad-05451487f69c",
+      "name": "Weekly",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM plans;",
+        "options": {}
+      },
+      "id": "94bd4c0e-b8fc-496d-9329-f7d86f8d24bb",
+      "name": "Get rows",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        220,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// framer-cms-sync wants one request with every row.\nreturn [{ json: { rows: $input.all().map((i) => i.json) } }];"
+      },
+      "id": "09bc5380-d897-4645-acc6-1b51d5ee39aa",
+      "name": "Bundle",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://framer-cms-sync:8080/syncs/pricing/apply?publish=on-change&complete=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "c4cbdf4a-4e89-483d-8f8c-6bb7da8ae502",
+      "name": "Apply (publish on change)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "framer-cms-sync token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Preview (safe)": {
+      "main": [
+        [
+          {
+            "node": "Get rows (preview)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows (preview)": {
+      "main": [
+        [
+          {
+            "node": "Bundle (preview)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bundle (preview)": {
+      "main": [
+        [
+          {
+            "node": "Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly": {
+      "main": [
+        [
+          {
+            "node": "Get rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get rows": {
+      "main": [
+        [
+          {
+            "node": "Bundle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bundle": {
+      "main": [
+        [
+          {
+            "node": "Apply (publish on change)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

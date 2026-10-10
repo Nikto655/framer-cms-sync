@@ -1,0 +1,16 @@
+# Only package.json, the lockfile, tsconfig.json, src/, skills/ and docker/ are needed to build the image.
+.git
+.github
+node_modules
+dist
+examples
+test
+*.md
+!skills/**/*.md
+.env
+.env.*
+.framer-cms-sync
+.demo
+# your own config and data when running from the repo root
+data
+framer-cms-sync.config.yaml

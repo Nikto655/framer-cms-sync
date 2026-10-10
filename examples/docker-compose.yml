@@ -1,0 +1,17 @@
+# Run framer-cms-sync as a service next to n8n (or anything else on the same Docker network).
+#   docker compose -f examples/docker-compose.yml up -d
+#   docker exec -it framer-cms-sync sh                  # opens the terminal app: set up the site, tokens, syncs (q for the shell)
+# On a fresh ./my-site folder the service waits for setup, then starts serving by itself.
+services:
+  framer-cms-sync:
+    build: ..
+    image: framer-cms-sync:latest
+    container_name: framer-cms-sync
+    restart: unless-stopped
+    volumes:
+      - ./my-site:/config          # holds framer-cms-sync.config.yaml and .env
+    ports:
+      # localhost only. Docker's port publishing bypasses host firewalls like UFW,
+      # so never publish on all interfaces unless you mean to.
+      - "127.0.0.1:8080:8080"
+    # networks: [your_n8n_network]   # then call it from n8n as http://framer-cms-sync:8080

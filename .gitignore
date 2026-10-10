@@ -1,0 +1,24 @@
+# dependencies and build output
+node_modules/
+dist/
+*.tgz
+
+# secrets and local state (never commit these)
+.env
+.env.*
+!.env.example
+.framer-cms-sync/
+
+# the demo copy made by `npm run demo`
+.demo/
+
+# your own config and data when running the tool from the repo root
+/framer-cms-sync.config.yaml
+/data/
+
+# logs, coverage, editors and OS files
+*.log
+coverage/
+.idea/
+.vscode/
+.DS_Store

@@ -1,0 +1,32 @@
+# Demo project. Try the tool without a Framer account:
+#   npm run build && npm run demo            (opens the terminal app on a copy in .demo/)
+#   npm run demo -- plan pricing             (any command works)
+# demo-framer.json stands in for a Framer project; the copy in .demo/ changes as you sync.
+
+project:
+  url: ${FRAMER_PROJECT_URL:-https://framer.com/projects/demo}
+  apiKey: ${FRAMER_API_KEY:-demo-key}
+
+defaults:
+  publish: never
+
+syncs:
+  # A CSV of plans into a hand-built (unmanaged) collection.
+  pricing:
+    collection: { name: Pricing }
+    source: { type: csv, path: ./pricing.csv }
+    key: { field: Plan Name }
+    fields:
+      ignore: [Internal notes]
+    prune: { minItems: 2, maxRemove: "50%" }
+
+  # A folder of Markdown posts into a collection owned by another plugin, so the
+  # tool makes its own managed copy ("Blog Synced") with the same fields.
+  blog:
+    collection: { name: Blog Synced, create: true }
+    schemaFrom: Blog
+    schemaIds: keep
+    source: { type: markdown, path: ./posts }
+    path: /blog/
+    lint:
+      max-length: { level: warn, meta_description: 160 }

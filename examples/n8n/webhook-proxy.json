@@ -1,0 +1,140 @@
+{
+  "name": "framer-cms-sync: webhook proxy",
+  "nodes": [
+    {
+      "parameters": {
+        "width": 760,
+        "height": 180,
+        "content": "## Webhook proxy \u2192 framer-cms-sync\nFor pushing from a laptop or an agent to a container that isn't exposed to the internet.\nPOST `{ op, sync, payload, planId?, publish?, slug?, redirectTo? }`. `payload` is the body for plan/apply (e.g. `{ posts: [{ slug, markdown }] }`).\nProtect the webhook with Header Auth, and use a framer-cms-sync token with the smallest scope that works."
+      },
+      "id": "3603bf51-edcb-4d73-9027-4566ce31695b",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "framer-cms-sync",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "a58b1661-e687-478b-b7e5-d65b43bd66b5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Maps {op, sync, ...} onto a framer-cms-sync route.\nconst b = $json.body || {};\nconst sync = encodeURIComponent(b.sync || 'blog');\nconst q = (o) => { const p = new URLSearchParams(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== '')); return p.toString() ? '?' + p : ''; };\nconst routes = {\n  plan:      ['POST', `/syncs/${sync}/plan`],\n  apply:     ['POST', `/syncs/${sync}/apply` + q({ planId: b.planId, publish: b.publish })],\n  items:     ['GET',  `/syncs/${sync}/items`],\n  remove:    ['DELETE', `/syncs/${sync}/items/${encodeURIComponent(b.slug || '')}` + q({ redirectTo: b.redirectTo, publish: b.publish })],\n  redirects: ['GET',  '/redirects'],\n  'redirects-plan':  ['POST', '/redirects/plan'],\n  'redirects-apply': ['POST', '/redirects/apply' + q({ publish: b.publish })],\n};\nconst r = routes[b.op];\nif (!r) return [{ json: { method: 'GET', path: '/health', payload: {} } }];\nreturn [{ json: { method: r[0], path: r[1], payload: b.payload ?? {} } }];"
+      },
+      "id": "d2238ce4-a61e-46e7-b2ee-8c1196f40286",
+      "name": "Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "=http://framer-cms-sync:8080{{ $json.path }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {
+          "timeout": 300000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "c71e1efe-c94c-4ffd-96a2-3f9aa14995f6",
+      "name": "framer-cms-sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "framer-cms-sync token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json.body) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "ea802624-9b85-4d89-841b-be3567cef81a",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "framer-cms-sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "framer-cms-sync": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "framer-cms-sync": {
+      "command": "npx",
+      "args": ["-y", "framer-cms-sync", "mcp", "--scope", "write", "--config", "/absolute/path/to/framer-cms-sync.config.yaml"]
+    }
+  }
+}
