@@ -139,10 +139,11 @@ Your URL and key are saved in `.env` (git-ignored). The config file only refers 
 ```
  your data                   framer-cms-sync                          Framer
  ─────────                   ───────────────                          ──────
- CSV / JSON file   ──►  read → match columns to fields      ──►   CMS collection
- Markdown folder        → check for problems → compare           (and your live site,
- URL / database         with Framer → preview → write             only when you ask)
-                        → publish (if asked)
+ Excel / CSV / JSON  ──►  read → match columns to fields      ──►   CMS collection
+ Markdown folder          → check for problems → compare           (and your live site,
+ Google Sheet / URL       with Framer → preview → write             only when you ask)
+ sent in by an agent      → publish (if asked)
+ or an app
 ```
 
 A **sync** is one saved link between a source of data and one Framer collection, defined in `framer-cms-sync.config.yaml`. Every sync can be:
@@ -168,7 +169,8 @@ Then you choose whether to **publish** (the terminal app asks; elsewhere `--publ
 Unchanged items are never rewritten: text, numbers, dates, options, yes/no, image URLs and rich text are all compared. Rich text is compared by content, so formatting Framer adds when storing it doesn't count as a change.
 
 ```bash
-framer-cms-sync apply blog ./posts/new-post.md          # one post; other posts untouched
+framer-cms-sync add blog ./new-post.md                  # one new Markdown post, straight away
+framer-cms-sync apply blog ./posts/new-post.md --partial # or through a preview; other posts untouched
 framer-cms-sync apply products ./new-rows.csv --create-only
 framer-cms-sync apply products --replace --publish
 ```
@@ -224,7 +226,7 @@ defaults:
 syncs:
   pricing:
     collection: { name: Pricing }      # or { id: … }; mode: auto | managed | unmanaged
-    source: { type: csv, path: ./pricing.csv }    # json | csv | markdown; path or url (+ headers)
+    source: { type: csv, path: ./pricing.csv }    # csv | excel | json | markdown | none; path or url (+ headers)
     key: { field: Plan Name }          # identifies each row; becomes the URL slug
     fields:
       map: { "Price": "Monthly Price" }   # column → field name, when names differ
@@ -395,11 +397,14 @@ Every action shows the equivalent command, so you learn the CLI as you go.
 | `plan <sync> [input…]` | preview: input is files, folders, globs or `-` for stdin |
 | `apply <sync> [input…]` | write: `--publish`, `--publish-on-change`, `--no-deploy`, `--plan-id`, `--limit`, `--only`, `--allow-mass-remove` |
 | `items <sync>`, `remove <sync> <slug> [--redirect-to slug] [--keep-file]` | list and delete items (and a Markdown post's file) |
+| `download <collection> <file\|folder>`, `template <file\|folder>`, `pull <sync>` | save a collection to a file, start from a template, bring Framer edits back into a sync's file |
 | `add <sync> <post.md…>`, `update <sync> <post.md…>` | add or update single Markdown posts straight away, keeping the folder in step |
 | `map <sync> [column] [field \| --ignore \| --auto]` | view or change which column goes to which field |
 | `redirects list / plan <csv> / apply <csv> / remove <from…>` | bulk redirects |
+| `tokens`, `tokens add / revoke`, `syncs remove` | access tokens; delete a sync from the program |
 | `publish`, `history`, `describe` | publish a site, recent runs, reference for agents |
 | `serve`, `mcp` | run the HTTP API or the MCP server |
+| `skills [name]` | the guides, in the terminal |
 
 Output is JSON when piped (or with `--json`). Exit codes: `0` ok, `1` validation failed, `2` refused by a safety guard, `3` config or auth, `4` Framer or source error.
 
@@ -418,7 +423,7 @@ npx framer-cms-sync serve        # http://127.0.0.1:8080
 ```bash
 docker build -t framer-cms-sync .
 docker run --rm -v "$PWD/my-site:/config" framer-cms-sync \
-  node /app/dist/cli/index.js init --name mysite --url https://framer.com/projects/… --key-env FRAMER_API_KEY
+  framer-cms-sync init --name mysite --url https://framer.com/projects/… --key-env FRAMER_API_KEY
 docker compose -f examples/docker-compose.yml up -d     # HTTP API + MCP on 127.0.0.1:8080
 ```
 
@@ -437,13 +442,13 @@ The container runs as a non-root user, has a health check, and keeps its config,
 Authenticate with `x-sync-token: <token>` (or `Authorization: Bearer <token>`). Bodies can be:
 - **JSON:** an array of records, or `{ rows: [...] }`. n8n items are unwrapped automatically.
 - **CSV** text.
-- **Markdown:** `{ posts: [{ slug, markdown }] }`.
+- **Markdown:** the text of a post, `{ slug, markdown }`, or `{ posts: [{ slug, markdown }] }`.
 
 An empty body uses the sync's configured source.
 
 For a Markdown sync, `POST /syncs/<sync>/items` adds a post and `PUT /syncs/<sync>/items` updates one, straight away. The body is Markdown text (`?slug=`) or `{ slug, markdown }`. `DELETE /syncs/<sync>/items/<slug>` removes one. The sync's folder is kept in step.
 
-Data in the body is **partial** by default: it adds and updates but never removes. Add `?complete=true` when you're sending the full data set and want items missing from it removed, or `?createOnly=true` to only add new items. With an empty body the sync's own source is used, which counts as complete (`?partial=true` to never remove).
+Data in the body is **partial** by default: it adds and updates but never removes. Add `?complete=true` when you're sending the full data set and want items missing from it removed, `?replace=true` to replace all, or `?createOnly=true` / `?updateOnly=true` to only add or only update. With an empty body the sync's own source is used, which counts as complete (`?partial=true` to never remove).
 
 | Route | Token scope |
 |---|---|
@@ -454,9 +459,10 @@ Data in the body is **partial** by default: it adds and updates but never remove
 | `POST /syncs/:sync/mappings` | write |
 | `GET /syncs/:sync/inspect` (its source, fetched live), `POST /syncs/:sync/inspect` or `POST /inspect` (data in the body) | read |
 | `POST /inspect?url=…` (any URL) | admin, because fetching arbitrary addresses could reach your internal network |
-| `POST /syncs/:sync/apply?publish=&planId=&complete=&createOnly=&limit=&only=` | write (publish to publish) |
-| `DELETE /syncs/:sync/items/:slug?redirectTo=` | write |
-| `GET /redirects`, `POST /redirects/plan` · `POST /redirects/apply` | read · write |
+| `POST /syncs/:sync/apply?publish=&planId=&complete=&replace=&createOnly=&updateOnly=&limit=&only=` | write (publish to publish) |
+| `POST /syncs/:sync/items` · `PUT /syncs/:sync/items` (add · update Markdown posts) | write (publish to publish) |
+| `DELETE /syncs/:sync/items/:slug?redirectTo=&keepFile=` | write |
+| `GET /redirects`, `POST /redirects/plan` · `POST /redirects/apply`, `POST /redirects/remove` | read · write |
 | `POST /publish?project=&deploy=false` | publish |
 | `POST /syncs/:sync/setup` | admin |
 
@@ -506,12 +512,12 @@ framer-cms-sync includes a **Model Context Protocol (MCP) server**, so Claude, C
 
 **Tools:**
 - **Always available:** `list_projects`, `list_collections`, `get_fields`, `list_syncs`, `check_sync`, `inspect_source` (any URL with admin scope only), `get_mappings`, `list_items`, `plan_sync`, `plan_redirects`, `describe`.
-- **With write scope:** `apply_sync`, `set_mappings`, `remove_item`, `apply_redirects`.
+- **With write scope:** `apply_sync`, `add_posts`, `update_posts`, `remove_item`, `set_mappings`, `apply_redirects`.
 - **With publish scope:** `publish_site`.
 - **With admin scope:** `setup_collection`.
 
 **Why it's safe to give to an agent:**
-- `apply_sync` needs the `planId` from a fresh `plan_sync`, so an agent can't skip the preview.
+- `apply_sync` needs the `planId` from a fresh `plan_sync`, so an agent can't skip the preview for bulk changes. The single-post tools only touch the posts they're given.
 - Publishing is a separate tool you can withhold.
 - Removals have hard limits.
 - Every problem has a stable code and a plain-words fix, so agents can correct their own mistakes.
@@ -552,7 +558,7 @@ if (plan.ok) {
   - Only when the source has at least `prune.minItems` records.
   - Never more than `prune.maxRemove` (default 20%) in one run without an explicit override.
 - **Fields aren't overwritten:** `setup` never replaces existing fields without `--force`.
-- **Locked down by default:** the server won't start without a token, and tokens are scoped (read, write, publish, admin).
+- **Locked down by default:** the server serves nothing until an access token exists, and tokens are scoped (read, write, publish, admin).
 - **Secrets stay secret:** API keys live in `.env` and are scrubbed from errors and logs.
 - **Everything is logged:** every write is recorded in a local run log, whether a person or an agent ran it.
 
@@ -562,7 +568,7 @@ if (plan.ok) {
 Run `npx framer-cms-sync`, choose your collection (or create one), give it the CSV file, and pick the column that identifies each row. Review the preview, press `a` and choose what to apply. To repeat it later, run `framer-cms-sync apply <sync>`; only changed rows are updated.
 
 ### Does Framer have a CMS API?
-Yes. Framer's [Server API](https://www.framer.com/developers/server-api-introduction) (in open beta) lets scripts read and write CMS collections and publish sites without opening Framer. framer-cms-sync is built on it and adds previews, field mapping, safety guards and the interfaces above.
+Yes. Framer's [Server API](https://www.framer.com/developers/server-api-introduction) lets scripts read and write CMS collections and publish sites without opening Framer. framer-cms-sync is built on it and adds previews, field mapping, safety guards and the interfaces above.
 
 ### Can I update Framer CMS automatically on a schedule?
 Yes. Run `framer-cms-sync apply <sync>` from cron or GitHub Actions, or use the HTTP API from n8n or Make. Set `publish: on-change` to republish only when something changed.
@@ -586,7 +592,7 @@ Yes. It includes an MCP server for Claude, Cursor and other agents, plus scoped 
 Yes. Add sites with `framer-cms-sync init --name …` or from the terminal app, and switch between them with Tab.
 
 ### Is it free?
-framer-cms-sync is free and open source (MIT). Framer's Server API is free during its open beta, and your Framer plan's own limits still apply.
+framer-cms-sync is free and open source (MIT). Using Framer's Server API is subject to your Framer plan and its limits.
 
 ### Is this an official Framer tool?
 No. It's an independent open-source project built on Framer's public API.
@@ -600,7 +606,7 @@ No. It's an independent open-source project built on Framer's public API.
 - **Can't delete collections.** Framer's API has no documented way to, so remove them in the editor.
 - **Redirects need a Framer plan that includes them.**
 - **One process per project.** Writes are queued within a process; don't run several instances writing to the same project at once.
-- **Early release (0.x)** on a beta API. It's tested against a real Framer project and an in-memory model of the API, but try it on a copy of your project first.
+- **Early release (0.x)** on a young API. It's tested against a real Framer project and an in-memory model of the API, but try it on a copy of your project first.
 
 ## Guides for people and agents
 
